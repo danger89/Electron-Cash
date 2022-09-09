@@ -174,7 +174,7 @@ def sweep(privkeys, network, config, recipient, fee=None, imax=100, sign_schnorr
     locktime = network.get_local_height()
 
     tx = Transaction.from_io(inputs, outputs, locktime=locktime, sign_schnorr=sign_schnorr)
-    tx.BIP_LI01_sort()
+    tx.BIP69_sort()
     tx.sign(keypairs)
     return tx
 
@@ -2014,7 +2014,7 @@ class Abstract_Wallet(PrintError, SPVDelegate):
             raise ExcessiveFee()
 
         # Sort the inputs and outputs deterministically
-        tx.BIP_LI01_sort()
+        tx.BIP69_sort()
         # Timelock tx to current height.
         locktime = self.get_local_height()
         if locktime == -1: # We have no local height data (no headers synced).
@@ -3077,7 +3077,7 @@ class RpaWallet(ImportedWalletBase):
 
     def can_import_privkey(self):
         return True
-        
+
     def has_seed(self):
         return self.keystore_rpa_aux.has_seed()
 
@@ -3114,7 +3114,7 @@ class RpaWallet(ImportedWalletBase):
     def update_password(self, old_pw, new_pw, encrypt=False):
         if old_pw is None and self.has_password():
             raise InvalidPassword()
-          
+
         if self.keystore is not None and len(self.keystore.keypairs) > 0 and self.keystore.can_change_password():
             self.keystore.update_password(old_pw,new_pw)
             self.save_keystore()
@@ -3182,26 +3182,26 @@ class RpaWallet(ImportedWalletBase):
             self.load_keystore_rpa_aux()
         k = self.get_keystore_rpa_aux()
         return k.derive_pubkey(c, i)
-        
+
     def dummy_address(self):
         pubkey = self.derive_pubkeys(0, 0)
         dummy_address = Address.from_pubkey(pubkey)
         return dummy_address
-        
+
     def get_grind_string(self):
         rpa_grind_string = rpa.get_grind_string(self)
         return rpa_grind_string
 
     def get_receiving_paycode(self):
         return rpa.generate_paycode(self, prefix_size="10")
-        
+
     def extract_private_keys_from_transaction(self,rawtx,password):
         return rpa.extract_private_keys_from_transaction(self, rawtx, password)
 
     def fetch_rpa_mempool_txs_from_server(self):
         # This function is intended to be called when the clients wants
-        # to check for new incoming RPA transactions from the mempool. 
-        
+        # to check for new incoming RPA transactions from the mempool.
+
         self.rpa_manager.rpa_phase_1_mempool()
         return
 
