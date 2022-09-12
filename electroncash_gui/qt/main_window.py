@@ -244,7 +244,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         if self.network:
             self.network_signal.connect(self.on_network_qt)
-            interests = ['blockchain_updated', 'wallet_updated',  
+            interests = ['blockchain_updated', 'wallet_updated',
                          'new_transaction', 'status', 'banner', 'verified2',
                          'fee', 'ca_verified_tx', 'ca_verification_failed', 'features']
             # To avoid leaking references to "self" that prevent the
@@ -258,7 +258,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             self.network.register_callback(self.on_history, ['on_history'])
             self.new_fx_quotes_signal.connect(self.on_fx_quotes)
             self.new_fx_history_signal.connect(self.on_fx_history)
-            
+
             if self.network.is_connected():
                 self.check_necessary_server_features()
 
@@ -743,7 +743,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             tools_menu.addAction(
                 _("&Refresh RPA Transactions"),
                 self.wallet.fetch_rpa_mempool_txs_from_server)
-        
+
         raw_transaction_menu = tools_menu.addMenu(_("&Load Transaction"))
         raw_transaction_menu.addAction(_("From &File") + "...", self.do_process_from_file)
         raw_transaction_menu.addAction(_("From &Text") + "...", self.do_process_from_text, QKeySequence("Ctrl+T"))
@@ -1137,28 +1137,44 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.receive_address_e = ButtonsLineEdit()
         self.receive_address_e.addCopyButton()
         self.receive_address_e.setReadOnly(True)
-        msg = _('Bitcoin Cash address where the payment should be received. Note that each payment request uses a different Bitcoin Cash address.')
+        self.receive_token_address_e = ButtonsLineEdit()
+        self.receive_token_address_e.addCopyButton()
+        self.receive_token_address_e.setReadOnly(True)
+        msg = _('Bitcoin Cash address where the payment should be received. Note that each payment request uses a'
+                ' different Bitcoin Cash address.')
+        msg2 = _("This a token-aware Bitcoin Cash address belonging to this wallet where CashTokens should be"
+                 " received.  It is the token-aware version of the 'Receiving address'")
         label = HelpLabel(_('&Receiving address'), msg)
         label.setBuddy(self.receive_address_e)
         self.receive_address_e.textChanged.connect(self.update_receive_qr)
         self.gui_object.cashaddr_toggled_signal.connect(self.update_receive_address_widget)
-        
+
+        row = 0
+
         if self.wallet.wallet_type == 'rpa':
             self.receive_paycode_e = ButtonsLineEdit()
             self.receive_paycode_e.addCopyButton()
-            grid.addWidget(self.receive_paycode_e, 0, 1, 1, -1)
+            grid.addWidget(self.receive_paycode_e, row, 1, 1, -1)
             self.receive_paycode_e.setText(self.wallet.get_receiving_paycode())
             self.receive_paycode_e.setReadOnly(True)
             self.receive_paycode_e.setStyleSheet(
                 "QLineEdit { qproperty-cursorPosition: 0; }")
             label = HelpLabel(_('&Receiving paycode'), msg)
             label.setBuddy(self.receive_paycode_e)
+            grid.addWidget(label, row, 0)
+            row += 1
         else:
-            grid.addWidget(self.receive_address_e, 0, 1, 1, -1)
+            grid.addWidget(self.receive_address_e, row, 1, 1, -1)
             label = HelpLabel(_('&Receiving address'), msg)
             label.setBuddy(self.receive_address_e)
+            grid.addWidget(label, row, 0)
+            row += 1
+            grid.addWidget(self.receive_token_address_e, row, 1, 1, -1)
+            label = HelpLabel(_('&Token address'), msg2)
+            label.setBuddy(self.receive_token_address_e)
+            grid.addWidget(label, row, 0)
+            row += 1
 
-        grid.addWidget(label, 0, 0)
 
         # Cash Account for this address (if any)
         msg = _("The Cash Account (if any) associated with this address. It doesn't get saved with the request, but it is shown here for your convenience.\n\nYou may use the Cash Accounts button to register a new Cash Account for this address.")
@@ -1225,15 +1241,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     slf.set_cash_acct()
         self.cash_account_e = CashAcctE()
         label.setBuddy(self.cash_account_e)
-        grid.addWidget(label, 1, 0)
-        grid.addWidget(self.cash_account_e, 1, 1, 1, -1)
+        grid.addWidget(label, row, 0)
+        grid.addWidget(self.cash_account_e, row, 1, 1, -1)
+        row += 1
 
 
         self.receive_message_e = QLineEdit()
         label = QLabel(_('&Description'))
         label.setBuddy(self.receive_message_e)
-        grid.addWidget(label, 2, 0)
-        grid.addWidget(self.receive_message_e, 2, 1, 1, -1)
+        grid.addWidget(label, row, 0)
+        grid.addWidget(self.receive_message_e, row, 1, 1, -1)
+        row += 1
         self.receive_message_e.textChanged.connect(self.update_receive_qr)
 
         # OP_RETURN requests
@@ -1243,9 +1261,10 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         label.setBuddy(self.receive_opreturn_e)
         self.receive_opreturn_rawhex_cb = QCheckBox(_('Raw &hex script'))
         self.receive_opreturn_rawhex_cb.setToolTip(_('If unchecked, the textbox contents are UTF8-encoded into a single-push script: <tt>OP_RETURN PUSH &lt;text&gt;</tt>. If checked, the text contents will be interpreted as a raw hexadecimal script to be appended after the OP_RETURN opcode: <tt>OP_RETURN &lt;script&gt;</tt>.'))
-        grid.addWidget(label, 3, 0)
-        grid.addWidget(self.receive_opreturn_e, 3, 1, 1, 3)
-        grid.addWidget(self.receive_opreturn_rawhex_cb, 3, 4, Qt.AlignLeft)
+        grid.addWidget(label, row, 0)
+        grid.addWidget(self.receive_opreturn_e, row, 1, 1, 3)
+        grid.addWidget(self.receive_opreturn_rawhex_cb, row, 4, Qt.AlignLeft)
+        row += 1
         self.receive_opreturn_e.textChanged.connect(self.update_receive_qr)
         self.receive_opreturn_rawhex_cb.clicked.connect(self.update_receive_qr)
         self.receive_tab_opreturn_widgets = [
@@ -1257,15 +1276,17 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         self.receive_amount_e = BTCAmountEdit(self.get_decimal_point)
         label = QLabel(_('Requested &amount'))
         label.setBuddy(self.receive_amount_e)
-        grid.addWidget(label, 4, 0)
-        grid.addWidget(self.receive_amount_e, 4, 1)
+        grid.addWidget(label, row, 0)
+        grid.addWidget(self.receive_amount_e, row, 1)
         self.receive_amount_e.textChanged.connect(self.update_receive_qr)
 
         self.fiat_receive_e = AmountEdit(self.fx.get_currency if self.fx else '')
         if not self.fx or not self.fx.is_enabled():
             self.fiat_receive_e.setVisible(False)
-        grid.addWidget(self.fiat_receive_e, 4, 2, Qt.AlignLeft)
+        grid.addWidget(self.fiat_receive_e, row, 2, Qt.AlignLeft)
         self.connect_fields(self, self.receive_amount_e, self.fiat_receive_e, None)
+        row += 1
+
 
         self.expires_combo = QComboBox()
         self.expires_combo.addItems([_(i[0]) for i in expiration_values])
@@ -1279,12 +1300,13 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         ])
         label = HelpLabel(_('Request &expires'), msg)
         label.setBuddy(self.expires_combo)
-        grid.addWidget(label, 5, 0)
-        grid.addWidget(self.expires_combo, 5, 1)
+        grid.addWidget(label, row, 0)
+        grid.addWidget(self.expires_combo, row, 1)
         self.expires_label = QLineEdit('')
         self.expires_label.setReadOnly(1)
         self.expires_label.hide()
-        grid.addWidget(self.expires_label, 5, 1)
+        grid.addWidget(self.expires_label, row, 1)
+        row += 1
 
         self.save_request_button = QPushButton(_('&Save'))
         self.save_request_button.clicked.connect(self.save_payment_request)
@@ -1306,7 +1328,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         buttons.addWidget(self.save_request_button)
         buttons.addWidget(self.new_request_button)
         buttons.addStretch(1)
-        grid.addLayout(buttons, 6, 2, 1, -1)
+        grid.addLayout(buttons, row, 2, 1, -1)
+        row += 1
 
         self.receive_requests_label = QLabel(_('Re&quests'))
 
@@ -1510,9 +1533,12 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def update_receive_address_widget(self):
         text = ''
+        text_token = ''
         if self.receive_address:
             text = self.receive_address.to_full_ui_string()
+            text_token = self.receive_address.to_tokenized().to_full_string(Address.FMT_CASHADDR)
         self.receive_address_e.setText(text)
+        self.receive_token_address_e.setText(text_token)
         self.cash_account_e.set_cash_acct()
 
     @rate_limited(0.250, ts_after=True)  # this function potentially re-computes the QR widget, so it's rate limited to once every 250ms
@@ -2092,8 +2118,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 self.show_error(_('Invalid Amount'))
                 return
             full_unit_amount = self.amount_e.get_amount() / 100000000
-            
-            
+
+
             rpa_pwd = None
             if self.wallet.wallet_type == 'rpa':
                 rpa_pwd = self.wallet.rpa_pwd
@@ -2106,14 +2132,14 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                     if not password:
                         return
                     rpa_pwd = password
-                
-            self.raw_tx = None    
+
+            self.raw_tx = None
             dlg = WaitingDialog(self, _('Please allow a few moments while Electron Cash creates your RPA transaction.  It needs to grind through many transaction signatures.'), rpa_grind, None, self.on_error, progress_bar=True, progress_min=0, progress_max=100)
             val=dlg.exec_()
             # If the user closes the waiting dialog, we should just exit.
             if self.raw_tx == None:
                 return
-                
+
             raw_tx = self.raw_tx
             if raw_tx == 0:
                 self.show_error("Problem creating paycode tx.")
@@ -2175,7 +2201,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         freeze_fee = self.fee_e.isVisible() and self.fee_e.isModified() and (self.fee_e.text() or self.fee_e.hasFocus())
         fee = self.fee_e.get_amount() if freeze_fee else None
         coins = self.get_coins(isInvoice)
-        
+
         # Return data.  Include the raw_tx if specified.
         # raw_tx used for RPA functionality so we can avoid grinding the transaction twice.
         # In that case, do_send() calls read_send_tab and doesn't need to
@@ -2645,15 +2671,15 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             # this is important so that cashacct: URIs get insta-resolved
             # (they only get resolved when payto_e loses focus)
             self.message_e.setFocus()
-            
-        # Ensure the checksum for the RPA address is correct.            
+
+        # Ensure the checksum for the RPA address is correct.
         paycode_checksum_ok = True
         if scheme == networks.net.RPA_PREFIX and not self.wallet.is_multisig():
             try:
                 rpa.addr.decode(networks.net.RPA_PREFIX + ":" + address)
             except:
                 paycode_checksum_ok = False
-     
+
         if scheme == "paycode" and paycode_checksum_ok and not self.wallet.is_multisig():
             self.payto_e.setIsPaycode(True)
             self.payto_e.setText("<" + networks.net.RPA_PREFIX + ":" + address + ">")
@@ -2707,20 +2733,28 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         legacy_address = ButtonsLineEdit()
         legacy_address.addCopyButton()
         legacy_address.setReadOnly(True)
+        token_address = ButtonsLineEdit()
+        token_address.addCopyButton()
+        token_address.setReadOnly(True)
 
         widgets = [
             (cash_address, Address.FMT_CASHADDR),
             (legacy_address, Address.FMT_LEGACY),
+            (token_address, Address.FMT_CASHADDR)
         ]
 
         def convert_address():
             try:
-                addr = Address.from_string(source_address.text().strip())
+                addr = Address.from_string(source_address.text().strip()).to_untokenized()
             except:
                 addr = None
             for widget, fmt in widgets:
                 if addr:
-                    widget.setText(addr.to_full_string(fmt))
+                    if widget is token_address:
+                        text = addr.to_tokenized().to_full_string(fmt)
+                    else:
+                        text = addr.to_full_string(fmt)
+                    widget.setText(text)
                 else:
                     widget.setText('')
 
@@ -2747,12 +2781,18 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         grid.addWidget(label, 2, 0)
         grid.addWidget(legacy_address, 2, 1)
 
+        label = QLabel(_('&Token address'))
+        label.setBuddy(token_address)
+        grid.addWidget(label, 3, 0)
+        grid.addWidget(token_address, 3, 1)
+
         w.setLayout(grid)
 
         label = WWLabel(_(
-            "This tool helps convert between address formats for Bitcoin "
-            "Cash addresses.\nYou are encouraged to use the 'Cash address' "
-            "format."
+            "<h1>Address Converter</h1>"
+            "<p>This tool helps convert between address formats for Bitcoin Cash addresses.</p>"
+            "You are encouraged to use the <b>Cash address</b> format for BCH.<br>"
+            "The <b>Token address</b> format is for receiving CashTokens."
         ))
 
         vbox = QVBoxLayout()
@@ -5338,7 +5378,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
                 webopen('https://www.cashaccount.info/')
             elif link == 'addr':
                 if self.wallet.is_mine(addr):
-                    self.show_address(addr)
+                    self.show_address(addr.to_untokenized())
                 else:
                     url = web.BE_URL(self.config, 'addr', addr)
                     if url:  webopen(url)
